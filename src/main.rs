@@ -1,11 +1,12 @@
-use std::env;
-
 use serenity::async_trait;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::{ChannelId, RoleId};
 use serenity::model::voice::VoiceState;
 use serenity::prelude::*;
+//use std::env;
+use std::fs::File;
+use std::io::Read;
 
 struct Handler;
 
@@ -86,7 +87,10 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let mut file = File::open("config.txt").expect("Fail to open");
+    let mut token = String::new();
+    file.read_to_string(&mut token).expect("Fail to read");
+    // let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::GUILDS
