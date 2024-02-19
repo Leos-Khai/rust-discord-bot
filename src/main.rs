@@ -29,6 +29,7 @@ impl EventHandler for Handler {
 
         if let Some(new_channel_id) = new.channel_id {
             let user_name = new.member.as_ref().unwrap().display_name();
+            let actual_name = &new.member.as_ref().unwrap().user.name;
             let channel_name = match new_channel_id.name(&ctx.cache).await {
                 Some(name) => name,
                 None => "unknown".to_string(),
@@ -53,7 +54,7 @@ impl EventHandler for Handler {
                 }
             } else {
                 // User joined new channel
-                let msg = format!("{}, {} joined {}", mention, user_name, channel_name);
+                let msg = format!("{}, {}({}) joined {}", mention, user_name, actual_name, channel_name);
                 // Send message to text channel
                 if let Err(why) = text_channel.say(&ctx.http, msg).await {
                     println!("{:?}", why);
