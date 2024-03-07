@@ -7,8 +7,9 @@ use serenity::prelude::*;
 //use std::env;
 use serde::Deserialize;
 use std::fs;
-use std::fs::File;
 use std::io::Read;
+mod database;
+use database::Database;
 
 #[derive(Deserialize)]
 struct Config {
@@ -102,7 +103,7 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     let config = load_config();
-    let mut file = File::open("config.txt").expect("Fail to open");
+    let mut file = fs::File::open("config.txt").expect("Fail to open");
     let mut token = String::new();
     file.read_to_string(&mut token).expect("Fail to read");
     // let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
@@ -111,7 +112,8 @@ async fn main() {
         | GatewayIntents::GUILDS
         | GatewayIntents::GUILD_VOICE_STATES
         | GatewayIntents::MESSAGE_CONTENT;
-
+let db = Database::new("data.db").unwrap();
+db.create().unwrap();
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler { config })
         .await
