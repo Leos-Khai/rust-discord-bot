@@ -20,3 +20,4 @@ Cargo.lock
 ignore.txt
 config.txt
 config.json
+*.db
