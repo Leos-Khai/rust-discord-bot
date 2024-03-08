@@ -8,6 +8,7 @@ use serenity::prelude::*;
 use serde::Deserialize;
 use std::fs;
 use std::io::Read;
+use std::sync::Mutex;
 mod database;
 use database::Database;
 
@@ -19,6 +20,7 @@ struct Config {
 
 struct Handler {
     config: Config,
+    db: Mutex<Database>,
 }
 
 #[async_trait]
@@ -97,25 +99,32 @@ impl EventHandler for Handler {
 
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+        let db = self.db.lock().unwrap();
+        db.print_existing_tables().unwrap();
     }
 }
 
 #[tokio::main]
 async fn main() {
     let config = load_config();
+    let db = Database::new("data.db").unwrap();
     let mut file = fs::File::open("config.txt").expect("Fail to open");
     let mut token = String::new();
     file.read_to_string(&mut token).expect("Fail to read");
-    // let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    // let token = env::var("DISCORD_TOKEN").expect("Expected a token in the
+    // environment");
+
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::GUILDS
         | GatewayIntents::GUILD_VOICE_STATES
         | GatewayIntents::MESSAGE_CONTENT;
-let db = Database::new("data.db").unwrap();
-db.create().unwrap();
+
     let mut client = Client::builder(&token, intents)
-        .event_handler(Handler { config })
+        .event_handler(Handler {
+            config,
+            db: Mutex::new(db),
+        })
         .await
         .expect("Err creating client");
 
