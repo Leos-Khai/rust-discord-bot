@@ -26,47 +26,74 @@ impl Database {
                 SELECT 1 FROM sqlite_master WHERE type='table' AND name='role_id'
                 INTERSECT
                 SELECT 1 FROM sqlite_master WHERE type='table' AND name='voice_channel_id'
+                INTERSECT
+                SELECT 1 FROM sqlite_master WHERE type='table' AND name='voice_text_link'
             )",
         )?;
         let count: usize = stmt.query_row([], |row| row.get(0))?;
-        Ok(count == 4)
+        Ok(count == 5)
     }
 
     fn init_db(&self) -> Result<()> {
         self.conn.execute_batch(
             "PRAGMA foreign_keys=OFF;
                 BEGIN TRANSACTION;
-    
+
                 CREATE TABLE IF NOT EXISTS servers (
                     server_id INTEGER PRIMARY KEY,
                     server_name TEXT NOT NULL
                 );
-    
+
                 CREATE TABLE IF NOT EXISTS channel_id (
                     channel_id INTEGER PRIMARY KEY,
                     server_id INTEGER NOT NULL,
                     channel_name TEXT NOT NULL,
                     FOREIGN KEY (server_id) REFERENCES servers(server_id)
                 );
-    
+
                 CREATE TABLE IF NOT EXISTS role_id (
                     role_id INTEGER PRIMARY KEY,
                     channel_id INTEGER NOT NULL,
                     role_name TEXT NOT NULL,
                     FOREIGN KEY (channel_id) REFERENCES channel_id(channel_id)
                 );
-    
+
                 CREATE TABLE IF NOT EXISTS voice_channel_id (
                     voice_channel_id INTEGER PRIMARY KEY,
                     channel_id INTEGER NOT NULL,
                     voice_channel_name TEXT NOT NULL,
                     FOREIGN KEY (channel_id) REFERENCES channel_id(channel_id)
                 );
-    
+
+                CREATE TABLE IF NOT EXISTS voice_text_link (
+                    link_id INTEGER PRIMARY KEY,
+                    voice_channel_id INTEGER NOT NULL,
+                    text_channel_id INTEGER NOT NULL,
+                    FOREIGN KEY (voice_channel_id) REFERENCES voice_channel_id(voice_channel_id),
+                    FOREIGN KEY (text_channel_id) REFERENCES channel_id(channel_id)
+                );
+
                 COMMIT;
                 PRAGMA foreign_keys=ON;",
         )?;
         Ok(())
+    }
+
+    pub fn link_channels(&self, voice_channel_id: i64, text_channel_id: i64) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO voice_text_link (voice_channel_id, text_channel_id) VALUES (?, ?)",
+            &[&voice_channel_id, &text_channel_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_linked_text_channel(&self, voice_channel_id: i64) -> Result<Option<i64>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT text_channel_id FROM voice_text_link WHERE voice_channel_id = ?")?;
+        let text_channel_id: Option<i64> =
+            stmt.query_row([voice_channel_id], |row| row.get(0)).ok();
+        Ok(text_channel_id)
     }
 
     pub fn print_existing_tables(&self) -> Result<()> {
